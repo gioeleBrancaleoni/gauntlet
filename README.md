@@ -142,13 +142,29 @@ Gauntlet is installed **once** on the machine and then used from **any** project
 
 **Prerequisites:** Docker running (needed at runtime), Python ≥ 3.12, and **pipx** or **pip**. The installer checks these and warns clearly, but does not install Python or Docker for you.
 
-### One command
+### One line (no clone needed)
+
+Install the CLI **and** the Claude Code skill in a single command, straight from GitHub:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/gioeleBrancaleoni/gauntlet/main/scripts/install.sh | sh
+```
+
+It installs the `gauntlet` CLI with **pipx** (from the public repo) and downloads `SKILL.md` into `~/.claude/skills/gauntlet/`. Want to read it before running? Pipe it to a file first, review, then run.
+
+Just the CLI (no skill), if that is all you need:
+
+```bash
+pipx install git+https://github.com/gioeleBrancaleoni/gauntlet.git
+```
+
+### From a clone
 
 ```bash
 ./scripts/install.sh
 ```
 
-The script installs the global CLI (preferring **pipx**, falling back to `pip install --user`) and copies `SKILL.md` into `~/.claude/skills/gauntlet/`. It is idempotent: re-run it to update both layers.
+Same two layers, idempotent (re-run to update). `install.sh` auto-detects whether it is run from a cloned repo or piped from the web, so the one command above and this one share the same script.
 
 ### Manual equivalent
 
@@ -162,11 +178,19 @@ mkdir -p ~/.claude/skills/gauntlet && cp SKILL.md ~/.claude/skills/gauntlet/
 
 ### Windows
 
+One line (no clone), in PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/gioeleBrancaleoni/gauntlet/main/scripts/install.ps1 | iex
+```
+
+Or from a clone:
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\install.ps1
 ```
 
-`-ExecutionPolicy Bypass` runs the script **without** changing the system policy. It registers the skill in `%USERPROFILE%\.claude\skills\gauntlet\`.
+`-ExecutionPolicy Bypass` runs the script **without** changing the system policy. It registers the skill in `%USERPROFILE%\.claude\skills\gauntlet\`. (The one-liner path is **not yet verified on a real Windows machine** — see below.)
 
 ### OS compatibility
 

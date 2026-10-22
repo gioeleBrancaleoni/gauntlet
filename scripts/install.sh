@@ -14,11 +14,29 @@
 
 set -eu
 
-# Directory del repository (questo script vive in scripts/).
-SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-REPO_DIR=$(CDPATH= cd -- "${SCRIPT_DIR}/.." && pwd)
-
+# Repository pubblico e destinazione della skill.
+REPO_URL="https://github.com/gioeleBrancaleoni/gauntlet"
 SKILLS_DIR="${HOME}/.claude/skills/gauntlet"
+
+# Due modalità di esecuzione:
+#   - LOCALE: lanciato da dentro il repo clonato (scripts/install.sh) → installa
+#     dalla cartella locale e copia SKILL.md dal repo;
+#   - REMOTA: lanciato via `curl ... | sh` senza repo locale → installa da
+#     GitHub (pipx/pip accettano un URL git+) e scarica SKILL.md dal raw.
+# La modalità è dedotta dalla presenza dei file del repo accanto allo script.
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" 2>/dev/null && pwd || echo "")
+REPO_DIR=""
+if [ -n "${SCRIPT_DIR}" ]; then
+    REPO_DIR=$(CDPATH= cd -- "${SCRIPT_DIR}/.." 2>/dev/null && pwd || echo "")
+fi
+
+if [ -n "${REPO_DIR}" ] && [ -f "${REPO_DIR}/SKILL.md" ] && [ -f "${REPO_DIR}/pyproject.toml" ]; then
+    MODE=local
+    PKG_SOURCE="${REPO_DIR}"
+else
+    MODE=remote
+    PKG_SOURCE="git+${REPO_URL}.git"
+fi
 
 # --- Prerequisito: Python >= 3.12 ------------------------------------------
 echo "==> Controllo prerequisiti"
@@ -63,10 +81,11 @@ else
 fi
 
 # --- Installazione del pacchetto -------------------------------------------
-echo "==> Installazione del pacchetto Gauntlet (CLI globale)"
+echo "==> Installazione del pacchetto Gauntlet (CLI globale) [modalità ${MODE}]"
 if [ "${INSTALLER}" = "pipx" ]; then
     # --force rende idempotente: reinstalla in modo pulito se già presente.
-    pipx install --force "${REPO_DIR}"
+    # PKG_SOURCE è una cartella locale (modalità locale) o un URL git+ (remota).
+    pipx install --force "${PKG_SOURCE}"
     echo "    installato con pipx"
 else
     if command -v pip >/dev/null 2>&1; then
@@ -78,15 +97,27 @@ else
     # Nota: su distro recenti (PEP 668) pip può rifiutarsi con
     # 'externally-managed-environment'. In tal caso usa pipx (consigliato) oppure,
     # se sai cosa stai facendo, 'pip install --user --break-system-packages'.
-    "${PIP}" install --user "${REPO_DIR}"
+    "${PIP}" install --user "${PKG_SOURCE}"
     echo "    installato con ${PIP} --user"
 fi
 
 # --- Registrazione della skill di Claude Code ------------------------------
 echo "==> Registrazione della skill di Claude Code"
 mkdir -p "${SKILLS_DIR}"
-cp "${REPO_DIR}/SKILL.md" "${SKILLS_DIR}/SKILL.md"
-echo "    SKILL.md copiato in ${SKILLS_DIR}/SKILL.md"
+if [ "${MODE}" = "local" ]; then
+    cp "${REPO_DIR}/SKILL.md" "${SKILLS_DIR}/SKILL.md"
+else
+    # Modalità remota: scarica SKILL.md dal raw di GitHub (curl o wget).
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL "${REPO_URL}/raw/main/SKILL.md" -o "${SKILLS_DIR}/SKILL.md"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -qO "${SKILLS_DIR}/SKILL.md" "${REPO_URL}/raw/main/SKILL.md"
+    else
+        echo "ERRORE: né curl né wget disponibili per scaricare SKILL.md." >&2
+        exit 1
+    fi
+fi
+echo "    SKILL.md installato in ${SKILLS_DIR}/SKILL.md"
 
 # --- Verifica che il comando sia raggiungibile nel PATH ---------------------
 # `command -v` non interrompe lo script sotto `set -e` perché è il test di un if.

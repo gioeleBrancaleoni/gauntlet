@@ -13,11 +13,25 @@
 
 $ErrorActionPreference = 'Stop'
 
-# Radice del repository (questo script vive in scripts\).
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$RepoDir = (Resolve-Path (Join-Path $ScriptDir '..')).Path
-
+# Repository pubblico e destinazione della skill.
+$RepoUrl = 'https://github.com/gioeleBrancaleoni/gauntlet'
 $SkillsDir = Join-Path $env:USERPROFILE '.claude\skills\gauntlet'
+
+# Due modalita': LOCALE (eseguito da dentro il repo clonato) o REMOTA
+# (eseguito via `irm ... | iex`, senza repo locale → installa da GitHub e
+# scarica SKILL.md dal raw). La modalita' e' dedotta dalla presenza dei file.
+$ScriptDir = if ($MyInvocation.MyCommand.Path) { Split-Path -Parent $MyInvocation.MyCommand.Path } else { $null }
+$RepoDir = $null
+if ($ScriptDir) {
+    try { $RepoDir = (Resolve-Path (Join-Path $ScriptDir '..')).Path } catch { $RepoDir = $null }
+}
+if ($RepoDir -and (Test-Path (Join-Path $RepoDir 'SKILL.md')) -and (Test-Path (Join-Path $RepoDir 'pyproject.toml'))) {
+    $Mode = 'local'
+    $PkgSource = $RepoDir
+} else {
+    $Mode = 'remote'
+    $PkgSource = "git+$RepoUrl.git"
+}
 
 Write-Host '==> Controllo prerequisiti'
 
@@ -78,10 +92,11 @@ if ($dockerOk) {
 }
 
 # --- Installazione del pacchetto -------------------------------------------
-Write-Host '==> Installazione del pacchetto Gauntlet (CLI globale)'
+Write-Host "==> Installazione del pacchetto Gauntlet (CLI globale) [modalita' $Mode]"
 if ($Installer -eq 'pipx') {
     # --force rende idempotente: reinstalla in modo pulito se gia'' presente.
-    pipx install --force $RepoDir
+    # $PkgSource e' una cartella locale (modalita' locale) o un URL git+ (remota).
+    pipx install --force $PkgSource
     Write-Host '    installato con pipx'
 } else {
     $Pip = if (Get-Command pip -ErrorAction SilentlyContinue) { 'pip' } else { 'pip3' }
@@ -89,15 +104,20 @@ if ($Installer -eq 'pipx') {
     # Nota: su ambienti recenti (PEP 668) pip puo' rifiutarsi con
     # 'externally-managed-environment'. In tal caso usa pipx (consigliato) oppure,
     # consapevolmente, 'pip install --user --break-system-packages'.
-    & $Pip install --user $RepoDir
+    & $Pip install --user $PkgSource
     Write-Host "    installato con $Pip --user"
 }
 
 # --- Registrazione della skill di Claude Code ------------------------------
 Write-Host '==> Registrazione della skill di Claude Code'
 New-Item -ItemType Directory -Force -Path $SkillsDir | Out-Null
-Copy-Item -Force (Join-Path $RepoDir 'SKILL.md') (Join-Path $SkillsDir 'SKILL.md')
-Write-Host "    SKILL.md copiato in $SkillsDir\SKILL.md"
+if ($Mode -eq 'local') {
+    Copy-Item -Force (Join-Path $RepoDir 'SKILL.md') (Join-Path $SkillsDir 'SKILL.md')
+} else {
+    # Modalita' remota: scarica SKILL.md dal raw di GitHub.
+    Invoke-WebRequest -UseBasicParsing "$RepoUrl/raw/main/SKILL.md" -OutFile (Join-Path $SkillsDir 'SKILL.md')
+}
+Write-Host "    SKILL.md installato in $SkillsDir\SKILL.md"
 
 # --- Verifica che il comando sia raggiungibile nel PATH --------------------
 if (-not (Get-Command gauntlet -ErrorAction SilentlyContinue)) {
