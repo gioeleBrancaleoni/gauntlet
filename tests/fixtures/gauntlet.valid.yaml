@@ -1,0 +1,41 @@
+# Fixture di contratto valido: due account di clienti diversi.
+name: demo-dev
+allowed_targets:
+  - http://localhost:8081
+  - http://host.docker.internal:8081
+reachability: localhost
+
+login:
+  method: json
+  login_url: http://localhost:8081/api/auth/login
+  username_field: email
+  password_field: password
+  logged_in_indicator: '"token"'
+  token_path: data.token
+  extra:
+    content_type: application/json
+
+accounts:
+  - label: cliente_a
+    username: a@example.com
+    password_env: DEMO_A_PW
+    tenant_id: tenant-a
+    seeded_resources:
+      - kind: invoice
+        id: inv-a-001
+        url_template: /api/invoices/{id}
+  - label: cliente_b
+    username: b@example.com
+    password_env: DEMO_B_PW
+    tenant_id: tenant-b
+    seeded_resources:
+      - kind: invoice
+        id: inv-b-001
+        url_template: /api/invoices/{id}
+
+docs_path: ./docs
+src_path: ./src
+exclusions:
+  - /health
+  - /metrics
+db_reset: docker compose exec db psql -f /seed/reset.sql

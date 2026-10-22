@@ -1,0 +1,135 @@
+# ---------------------------------------------------------------------------
+# Contratto di esempio di Gauntlet (gauntlet.yaml)
+#
+# Copia questo file come `gauntlet.yaml` nella cartella del tuo progetto e
+# adattalo. Il contratto è ciò che rende la skill portabile fra progetti:
+# descrive COSA puoi attaccare (allowlist fail-closed), COME raggiungere il
+# bersaglio, COME autenticarsi e QUALI due account di clienti diversi usare per
+# i test di isolamento tra tenant.
+#
+# REGOLA SUI SEGRETI: nessuna password compare qui. Gli account referenziano
+# solo il NOME della variabile d'ambiente che contiene la password
+# (`password_env`), risolta a runtime. Non scrivere mai credenziali nel YAML.
+# ---------------------------------------------------------------------------
+
+# Nome del progetto (compare nel report e nei nomi dei contesti ZAP).
+name: esempio-app
+
+# Allowlist FAIL-CLOSED: solo queste origini (schema + host + porta) possono
+# ricevere traffico. Tutto ciò che non è elencato qui è rifiutato. Usa SOLO
+# ambienti usa-e-getta (dev/stage locali), MAI la produzione.
+allowed_targets:
+  - http://localhost:8081
+  - http://host.docker.internal:8081   # stesso bersaglio visto dal container ZAP
+
+# Come il bersaglio è raggiungibile: localhost | docker | vpn. È un'indicazione
+# di contesto; la verifica concreta nel preflight è una connessione TCP.
+reachability: localhost
+
+# Come autenticarsi contro l'applicazione (serve ai livelli >= 2).
+login:
+  method: json                                   # form | json | token | session
+  login_url: http://localhost:8081/api/auth/login
+  username_field: email                          # nome del campo utente nel body
+  password_field: password                       # nome del campo password nel body
+  logged_in_indicator: '"token"'                 # stringa che prova il login riuscito
+  token_path: data.token                         # dot-path del token (json/token)
+
+# --- Metodo alternativo: login a sessione-cookie ---------------------------
+# Per app che autenticano impostando un cookie di sessione (2xx + Set-Cookie),
+# senza restituire un token nel corpo. Il successo è provato dalla PRESENZA del
+# cookie `success_cookie`, non da un token o da un indicatore nel corpo. Al posto
+# del blocco `login:` qui sopra, useresti:
+#
+# login:
+#   method: session                              # form | json | token | session
+#   login_url: http://localhost:8081/login
+#   username_field: email                        # nome del campo utente nel body
+#   success_cookie: sid                          # cookie la cui PRESENZA conferma il login (OBBLIGATORIO con session)
+#   # `password_field` e `logged_in_indicator` sono OPZIONALI con `session`:
+#   # omettili per un login senza password dedicata (es. solo-email). Se presenti,
+#   # la password viene inviata solo se valorizzata e `logged_in_indicator` è un
+#   # controllo extra, applicato solo quando non vuoto.
+#   # extra:
+#   #   body_format: form                        # json (default) | form
+#   #   body: { remember: true }                 # campi fissi aggiunti al body inviato
+#
+# REGOLA SUI SEGRETI (vale anche qui): nessuna password nel YAML. Se il login a
+# sessione richiede una password, mettila in una variabile d'ambiente e
+# referenziala con `password_env` sull'account, mai in chiaro.
+
+# Due account di CLIENTI DIVERSI: indispensabili per il test di isolamento
+# cross-tenant (il cliente B non deve poter leggere i dati del cliente A).
+accounts:
+  - label: cliente_a
+    username: a@example.com
+    password_env: ESEMPIO_A_PW     # la password è in questa variabile d'ambiente
+    tenant_id: tenant-a
+    seeded_resources:
+      - kind: invoice
+        id: inv-a-0001
+        url_template: /api/invoices/{id}
+        # Marcatore univoco seminato nei dati del cliente A: è l'oracolo di
+        # proprietà del test cross-tenant. Un leak è confermato solo se un altro
+        # tenant ottiene 2xx E nel corpo compare questo marcatore.
+        seed_marker: SEED-A-0001-marker
+
+  - label: cliente_b
+    username: b@example.com
+    password_env: ESEMPIO_B_PW
+    tenant_id: tenant-b
+    seeded_resources:
+      - kind: invoice
+        id: inv-b-0001
+        url_template: /api/invoices/{id}
+        seed_marker: SEED-B-0001-marker
+
+# Sonde open redirect (OPZIONALE). Ogni template è un path con il segnaposto
+# `{payload}` dove iniettare la destinazione: la skill ci mette un canary
+# off-origin e segnala solo se la risposta reindirizza DAVVERO verso quel canary
+# (oracolo deterministico, nessun falso positivo). Omesso => controllo disattivato
+# (nessuna richiesta). Gira a qualsiasi livello, non distruttivo (solo GET).
+# redirect_probes:
+#   - "/login?next={payload}"      # reindirizzamento post-login controllato dal parametro
+#   - "/logout?returnTo={payload}" # reindirizzamento post-logout
+#   - "/redirect?url={payload}"    # endpoint di redirect generico
+
+# Sonde di assegnazione di massa (mass assignment) (OPZIONALE, AGGRESSIVE-ONLY).
+# Ogni voce descrive un endpoint di update su cui provare a scrivere un campo
+# PROTETTO che il client non dovrebbe poter impostare (dichiarato dall'operatore,
+# mai indovinato): la skill scrive `forbidden_field` = `forbidden_value`, poi
+# rilegge la risorsa e segnala SOLO se il campo risulta DAVVERO modificato
+# (oracolo deterministico write + re-GET, nessun falso positivo). È DISTRUTTIVO
+# (scrive) e gira SOLO con `--aggressive`, dietro conferma distruttiva; omesso =>
+# controllo disattivato (nessuna richiesta). `{id}` nel template è sostituito con
+# `id`; dopo la sonda si tenta un ripristino best-effort del valore originale.
+# `forbidden_value` conserva il suo tipo YAML/JSON e viene inviato TIPIZZATO nel
+# corpo: un booleano parte come booleano, un intero come intero, una parola come
+# stringa. Una re-GET con il campo assente o `null` NON conferma (serve il campo
+# presente col valore iniettato).
+# mass_assignment:
+#   - url_template: /api/users/{id}    # endpoint di update della risorsa
+#     id: "1"                          # id della risorsa bersaglio
+#     forbidden_field: role            # campo protetto da tentare di scrivere
+#     forbidden_value: admin           # valore (stringa) che NON dovrebbe essere accettato
+#     # method: PATCH                  # verbo HTTP dell'update (default PATCH)
+#     # read_template: /api/users/{id} # path per rileggere e confermare (default: url_template)
+#   # Esempio con valore TIPIZZATO: il booleano parte come booleano JSON `true`,
+#   # non come stringa "True".
+#   # - url_template: /api/users/{id}
+#   #   id: "1"
+#   #   forbidden_field: isAdmin         # flag privilegio da tentare di scrivere
+#   #   forbidden_value: true            # inviato come booleano JSON (non "True")
+
+# Percorsi opzionali: ampliano la superficie nota ai livelli 3 (documentazione)
+# e 4 (sorgente). Omessi se non disponibili.
+docs_path: ./docs
+src_path: ./src
+
+# Path/URL da NON toccare durante la scansione (health check, metriche, ecc.).
+exclusions:
+  - /health
+  - /metrics
+
+# Comando opzionale per riportare il DB a uno stato noto fra i run.
+db_reset: docker compose exec db psql -f /seed/reset.sql

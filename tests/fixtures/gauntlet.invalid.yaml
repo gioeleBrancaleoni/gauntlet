@@ -1,0 +1,15 @@
+# Fixture di contratto NON valido: manca il campo obbligatorio `allowed_targets`.
+name: demo-dev
+reachability: localhost
+
+login:
+  method: json
+  login_url: http://localhost:8081/api/auth/login
+  username_field: email
+  password_field: password
+  logged_in_indicator: '"token"'
+
+accounts:
+  - label: cliente_a
+    username: a@example.com
+    password_env: DEMO_A_PW

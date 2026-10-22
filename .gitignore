@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Segreti e output dei run (mai versionare)
+.env
+gauntlet.yaml
+# i contratti d'esempio del demo sono privi di segreti e vanno versionati
+!examples/**/gauntlet.yaml
+gauntlet-runs/
+
+# OS
+.DS_Store
+
+# Spazio di lavoro SDD (scratch git-ignored)
+.superpowers/
+
+# Copie interne del workflow: non fanno parte della skill pubblicabile
+manuale-skill/
+workflow/
+modelli-stato/
+SKILLS.md
+
+# Artefatti interni del workflow (non pubblici)
+/CLAUDE.md
+/docs/superpowers/
+
+# Artefatti di build Python
+build/
+*.egg-info/
+dist/

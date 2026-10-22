@@ -1,0 +1,45 @@
+# Contratto Gauntlet per crAPI (completely ridiculous API) — bersaglio-palestra
+# multi-tenant con JWT e falle BOLA/IDOR, in locale via Docker.
+#
+# Avvio (vedi targets/README.md): lo stack crAPI; crapi-web su 0.0.0.0:30080.
+# Due utenti di prova (gauntlet-a / gauntlet-b) registrati, con un veicolo
+# ciascuno assegnato nel DB; il marcatore d'oracolo è l'email del proprietario,
+# che trapela nella risposta dell'endpoint vulnerabile .../vehicle/{id}/location.
+
+name: crapi
+
+allowed_targets:
+  - http://host.docker.internal:30080   # crAPI visto dal container ZAP; lato-host mappato a 127.0.0.1
+
+reachability: docker
+
+login:
+  method: token
+  login_url: http://host.docker.internal:30080/identity/api/auth/login
+  username_field: email
+  password_field: password
+  logged_in_indicator: '"token"'
+  token_path: token
+
+accounts:
+  - label: cliente_a
+    username: gauntlet-a@example.com
+    password_env: CRAPI_A_PW
+    tenant_id: "8"
+    seeded_resources:
+      - kind: vehicle_location
+        id: 41b16f7d-9020-4090-bb51-2b6b590873ac
+        url_template: /identity/api/v2/vehicle/{id}/location
+        seed_marker: gauntlet-a@example.com   # l'email di A trapela a un altro tenant = leak confermato
+
+  - label: cliente_b
+    username: gauntlet-b@example.com
+    password_env: CRAPI_B_PW
+    tenant_id: "9"
+    seeded_resources:
+      - kind: vehicle_location
+        id: 419c8b18-ef49-4216-88c9-5acf530addcf
+        url_template: /identity/api/v2/vehicle/{id}/location
+        seed_marker: gauntlet-b@example.com
+
+exclusions: []

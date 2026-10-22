@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gauntlet"
+version = "0.1.0"
+description = "Skill riutilizzabile di security-testing (DAST) per applicazioni web, guidata da un contratto di progetto."
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Gioele Brancaleoni" }]
+dependencies = [
+    "zaproxy",   # client Python di OWASP ZAP (modulo importato: `zapv2`)
+    "httpx",     # client HTTP per automazione login e controllo-accessi
+    "PyYAML",    # parsing del contratto di progetto
+]
+
+[project.scripts]
+# Comando globale `gauntlet` disponibile dopo l'installazione (pipx/pip).
+# Equivalente a `python -m gauntlet`, che continua a funzionare.
+gauntlet = "gauntlet.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-httpserver",  # server HTTP effimero per i test di login/accessi
+]
+
+[tool.setuptools]
+packages = ["gauntlet"]
+
+[tool.setuptools.package-data]
+gauntlet = ["zap_scripts/*.js"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+addopts = "-ra"

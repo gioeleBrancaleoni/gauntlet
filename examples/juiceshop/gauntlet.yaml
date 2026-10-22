@@ -1,0 +1,40 @@
+# Contratto Gauntlet per OWASP Juice Shop (bersaglio-palestra, in locale via Docker).
+# Juice Shop è un'app deliberatamente vulnerabile: la usiamo per dimostrare la
+# scansione delle falle web classiche (livello 1 — cieco, non autenticato).
+#
+# Avvio del bersaglio:
+#   docker run -d -p 3000:3000 --name juice-shop bkimminich/juice-shop
+#
+# Il container ZAP raggiunge l'app sull'host via host.docker.internal.
+
+name: juice-shop
+
+allowed_targets:
+  - http://host.docker.internal:3000   # Juice Shop sull'host, visto dal container ZAP
+
+reachability: docker
+
+# Login REST di Juice Shop (serve solo ai livelli >= 2; al livello 1 è ignorato).
+login:
+  method: json
+  login_url: http://host.docker.internal:3000/rest/user/login
+  username_field: email
+  password_field: password
+  logged_in_indicator: '"token"'
+  token_path: authentication.token
+
+# Due account segnaposto (non usati al livello 1; Juice Shop non è multi-tenant
+# come crAPI, quindi l'isolamento tra clienti si dimostra su crAPI, non qui).
+accounts:
+  - label: utente_a
+    username: gauntlet-a@example.com
+    password_env: JUICE_A_PW
+    tenant_id: a
+    seeded_resources: []
+  - label: utente_b
+    username: gauntlet-b@example.com
+    password_env: JUICE_B_PW
+    tenant_id: b
+    seeded_resources: []
+
+exclusions: []
