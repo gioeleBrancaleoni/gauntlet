@@ -2,9 +2,9 @@
 
 **Contract-driven DAST for web apps** — it combines OWASP ZAP with a custom, deterministic access-control tester to find the authorization and tenant-isolation bugs that scanners and static analysis miss, and writes a plain-language report anyone can read.
 
+[![CI](https://github.com/gioeleBrancaleoni/gauntlet/actions/workflows/ci.yml/badge.svg)](https://github.com/gioeleBrancaleoni/gauntlet/actions/workflows/ci.yml)
 ![license: MIT](https://img.shields.io/badge/license-MIT-blue)
 ![python: >=3.12](https://img.shields.io/badge/python->=3.12-blue)
-![tests: 279 passing](https://img.shields.io/badge/tests-279%20passing-brightgreen)
 
 ---
 
