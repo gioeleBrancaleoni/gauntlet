@@ -492,7 +492,10 @@ def test_discovered_endpoint_is_informational_not_access_control(project, monkey
         MagicMock(return_value=[Endpoint("GET", "/api/profile", "openapi")]),
     )
 
-    path = cli.run(str(project), level=4)
+    # Lingua forzata: il test asserisce la stringa italiana della nota di
+    # discovery, quindi non deve dipendere dal locale di sistema (la CI gira in
+    # inglese e il report si auto-localizzerebbe altrimenti).
+    path = cli.run(str(project), level=4, report_lang="it")
 
     # 1) L'endpoint scoperto è stato dato come seed a ZAP.
     touched = [
