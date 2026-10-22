@@ -28,6 +28,7 @@ SKILLS.md
 # Artefatti interni del workflow (non pubblici)
 /CLAUDE.md
 /docs/superpowers/
+/HANDOFF.md
 
 # Artefatti di build Python
 build/
