@@ -595,6 +595,7 @@ MESSAGES: dict[str, dict[str, str]] = {
         ),
         # --- output per l'operatore (cli.py) ---
         "cli_report_written": "Report scritto in: {path}",
+        "cli_html_report_written": "Report HTML scritto in: {path}",
         "cli_error": "Errore: {exc}",
         "cli_preflight_failed": (
             "Preflight non superato: l'ambiente non è pronto per il run."
@@ -1061,6 +1062,7 @@ MESSAGES: dict[str, dict[str, str]] = {
         ),
         # --- operator output (cli.py) ---
         "cli_report_written": "Report written to: {path}",
+        "cli_html_report_written": "HTML report written to: {path}",
         "cli_error": "Error: {exc}",
         "cli_preflight_failed": (
             "Preflight failed: the environment is not ready for the run."

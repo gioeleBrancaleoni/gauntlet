@@ -158,7 +158,8 @@ def write_report(
             monte.
 
     Returns:
-        Il :class:`pathlib.Path` del file ``report.md`` scritto.
+        Il :class:`pathlib.Path` del file ``report.md`` scritto (accanto a lui
+        viene scritto anche ``report.html``).
     """
     ordinati = sorted(findings, key=_severity_key)
 
@@ -180,4 +181,11 @@ def write_report(
             sezioni.append(_format_finding(i, finding, lang))
 
     report_path.write_text("\n\n".join(sezioni) + "\n", encoding="utf-8")
+    # Import locale: report_html importa a sua volta da questo modulo (ciclo).
+    from gauntlet import report_html
+
+    # Versione HTML autoconsistente accanto al Markdown (stessi finding ordinati).
+    (run_dir / "report.html").write_text(
+        report_html.render_html(ordinati, meta, lang=lang), encoding="utf-8"
+    )
     return report_path

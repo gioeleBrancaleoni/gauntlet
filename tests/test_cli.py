@@ -1344,3 +1344,18 @@ def test_cli_builds_session_cookie_for_session_login(session_project, monkeypatc
         call.args == ("http://localhost:8081", 7, None)
         for call in runner.spider.call_args_list
     )
+
+
+def test_run_writes_html_next_to_md_and_main_prints_it(project, monkeypatch, capsys):
+    # run() restituisce il .md; accanto c'è report.html e main() ne stampa il path.
+    _green_preflight(monkeypatch)
+    zap_factory, _ = _mock_zap_factory(alerts=[])
+    monkeypatch.setattr(cli, "ZapRunner", zap_factory)
+
+    rc = cli.main(["run", "--project", str(project), "--level", "1"])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "report.md" in out and "report.html" in out
+    html_files = list(Path(project).glob("gauntlet-runs/*/report.html"))
+    assert len(html_files) == 1

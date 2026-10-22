@@ -184,3 +184,20 @@ def test_report_handles_no_findings(tmp_path):
     text = path.read_text(encoding="utf-8")
     # Nessun finding: messaggio rassicurante, non un report vuoto.
     assert "nessun" in text.lower() or "0" in text
+
+
+def test_write_report_also_writes_html_next_to_md(tmp_path):
+    path = write_report(
+        [_finding("alta", "Leak tra clienti")],
+        str(tmp_path),
+        meta={"livello": 2, "target": "http://localhost:8081"},
+    )
+    html_path = path.with_name("report.html")
+    # Il .md resta il valore restituito; l'.html è scritto nella stessa cartella.
+    assert path.name == "report.md" and path.exists()
+    assert html_path.exists()
+    assert html_path.read_text(encoding="utf-8").lstrip().lower().startswith(
+        "<!doctype html"
+    )
+    # Retro-compat: il contenuto del .md non è cambiato (niente markup HTML).
+    assert "<!doctype" not in path.read_text(encoding="utf-8").lower()

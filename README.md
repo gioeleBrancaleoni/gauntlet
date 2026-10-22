@@ -217,7 +217,7 @@ Per-project setup, after the one-time global install, is just:
 1. a `gauntlet.yaml` contract in the project folder (start from [`gauntlet.example.yaml`](gauntlet.example.yaml));
 2. the account passwords exported as environment variables (never in the YAML).
 
-The report is written to `<project>/gauntlet-runs/<timestamp>/report.md`, and the path is printed on screen.
+The report is written to `<project>/gauntlet-runs/<timestamp>/report.md`, alongside a self-contained `report.html` (no external assets, openable in any browser), and both paths are printed on screen.
 
 Gauntlet also works as a **Claude Code skill**: ask in natural language ("scan my staging app for access-control bugs") and Claude orchestrates the run — including the level-3/4 manual testing that reads your docs and source.
 

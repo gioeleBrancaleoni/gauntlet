@@ -638,6 +638,8 @@ def main(argv: list[str] | None = None) -> int:
             print(t(lang, "cli_error", exc=exc), file=sys.stderr)
             return 1
         print(t(lang, "cli_report_written", path=path))
+        # Accanto al .md c'è sempre il report.html autoconsistente.
+        print(t(lang, "cli_html_report_written", path=path.with_name("report.html")))
         return 0
 
     # argparse garantisce un comando valido; difesa in profondità.
