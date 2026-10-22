@@ -221,7 +221,7 @@ The report is written to `<project>/gauntlet-runs/<timestamp>/report.md`, and th
 
 Gauntlet also works as a **Claude Code skill**: ask in natural language ("scan my staging app for access-control bugs") and Claude orchestrates the run — including the level-3/4 manual testing that reads your docs and source.
 
-> **Model note.** Gauntlet performs *legitimate, authorized* DAST against your own apps, but the security-testing prompts are **often refused by some models' safeguards** — in practice **Opus 5.5 and Fable frequently decline them**. The skill is **tested and working on Opus 4.8**. If your model refuses, either switch to Opus 4.8, or just run the CLI directly (`gauntlet run ...`) with a prepared `gauntlet.yaml` — the CLI does the scanning and needs no model at all.
+> **Model note.** Gauntlet performs *legitimate, authorized* DAST against your own apps, but the security-testing prompts are **often refused by some models' safeguards** — in practice **Opus 5.5 and Fable frequently decline them**. The skill is **tested and working on Opus 4.8**. If your model refuses, either switch to Opus 4.8, or just run the CLI directly (`gauntlet run ...`) with a prepared `gauntlet.yaml` — the CLI does the scanning and needs no model at all. Ready-to-paste, well-framed prompts that models recognize as authorized testing are in [docs/prompts.md](docs/prompts.md).
 
 > The report can contain **extracts of real responses, PII, or tokens** from the evidence of confirmed findings. Treat it as a confidential document and review it before sharing.
 
